@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>benchd</title>
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <style>
+      .hidden {
+        display: none !important;
+      }
+      button#benchAdd {
+        margin: 10px;
+      }
+      div#status {
+        font-weight: bold;
+      }
+      body {
+        padding: 5px;
+      }
+      img {
+        border: 0;
+      }
+    </style>
+    <script>
+      window.onload = function() {
+        if (WS) {
+          $('#content').removeClass('hidden');
+          startup();
+        }
+      };
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <noscript>
+        JavaScript is required to use this service.
+      </noscript>
+      <script>
+        var WS = window.WebSocket || window.MozWebSocket;
+        if (!WS)
+          document.write('<div class="alert alert-danger" role="alert">WebSockets do not seem to be supported by your browser. This feature is required to use this service.</div>');
+      </script>
+
+      <div id="content" class="hidden">
+        <div class="well well-sm" id="status">Status: No job submitted</div>
+
+        <div class="well well-sm hidden" id="results">
+          <h3>Results:</h3>
+          <table class="table table-condensed table-bordered"></table>
+        </div>
+
+        <div class="text-center">
+          <button type="button" class="btn btn-primary" id="benchAdd">Add Benchmark</button>
+        </div>
+
+        <div class="panel panel-default hidden" id="benchTpl">
+          <div class="panel-body">
+            <form role="form" onsubmit="return false">
+              <div class="form-group">
+                <label for="benchName">Benchmark Name</label>
+                <input type="text" class="form-control benchName">
+              </div>
+              <div class="form-group">
+                <label for="benchCode">Benchmark Code</label>
+                <textarea class="form-control benchCode" rows="7"></textarea>
+              </div>
+              <button type="button" class="btn btn-default insert">Insert New Before</button>
+              <button type="button" class="btn btn-danger delete">Delete</button>
+            </form>
+          </div>
+        </div>
+
+        <div id="benchmarks">
+          <div class="panel panel-default">
+            <div class="panel-body">
+              <form role="form" onsubmit="return false">
+                <div class="form-group">
+                  <label for="benchName">Benchmark Name</label>
+                  <input type="text" class="form-control benchName" autofocus>
+                </div>
+                <div class="form-group">
+                  <label for="benchCode">Benchmark Code</label>
+                  <textarea class="form-control benchCode" rows="7"></textarea>
+                </div>
+                <button type="button" class="btn btn-default insert">Insert New Before</button>
+                <button type="button" class="btn btn-danger delete">Delete</button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <div class="well">
+          <form role="form" onsubmit="return false">
+            <div class="form-group">
+              <label for="targets">Concurrency</label>
+              <select class="form-control" id="concurrency" aria-describedby="concurrencyHelp">
+<% for (var c = 1; c <= config.maxConcurrency; ++c) { %>
+                <option value="<%- c %>"<% if (c === 1) { %> selected="selected"<% } %>><%- c %></option>
+<% } %>
+              </select>
+              <span id="concurrencyHelp" class="help-block">This is the maximum number of target processes to execute at any given time</span>
+            </div>
+            <div class="form-group">
+              <label for="targets">Targets</label>
+              <select multiple class="form-control" id="targets" size="10">
+<% targets.forEach(function(target, idx) { %>
+                <option value="<%- target %>"<% if (idx === 0) { %> selected="selected"<% } %>><%- target %></option>
+<% }); %>
+              </select>
+            </div>
+            <button type="button" class="btn btn-success btn-lg" id="submit">Submit Benchmarks</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="js/main.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="js/bootstrap.min.js"></script>
+  </body>
+</html>

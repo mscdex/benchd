@@ -1,0 +1,27 @@
+var Benchmark = require(<%- benchmarkModulePath %>);
+var inspect = require('util').inspect;
+function formatNumber(number) {
+  number = String(number).split('.');
+  return number[0].replace(/(?=(?:\d{3})+$)(?!\b)/g, ',') +
+    (number[1] ? '.' + number[1] : '');
+}
+function formatResult(target) {
+  var error = target.error,
+      hz = target.hz,
+      stats = target.stats,
+      size = stats.sample.length;
+  if (error)
+    return inspect(error);
+  return formatNumber(hz.toFixed(hz < 100 ? 2 : 0)) + ' ops/sec \xb1' +
+         stats.rme.toFixed(2) + '% (' + size + ' run' + (size == 1 ? '' : 's') +
+         ' sampled)';
+}
+var suite = new Benchmark.Suite();
+<% benchmarks.forEach(function(b) { %>
+suite.add(<%- b.name %>, <%- b.jscode %>);
+<% }); %>
+suite.on('cycle', function(event) {
+  console.log(JSON.stringify([event.target.name, formatResult(event.target)]));
+}).on('complete', function() {
+  console.log(JSON.stringify(this.filter('fastest').pluck('name')));
+}).run();

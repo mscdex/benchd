@@ -1,0 +1,25 @@
+{ "name": "benchd",
+  "version": "0.0.0",
+  "author": "Brian White <mscdex@mscdex.net>",
+  "description": "Benchmark JavaScript code across different node.js/io.js versions",
+  "main": "./lib/server",
+  "engines": { "node": ">=0.10.0" },
+  "preferGlobal": true,
+  "bin": {
+    "benchd": "./bin/benchd",
+  },
+  "dependencies": {
+    "ejs": "^2.3.3",
+    "serve-static": "^1.10.0",
+    "semver": "^5.0.0",
+    "faye-websocket": "^0.10.0",
+    "benchmark": "^1.0.0",
+    "uuid": "1.4.1"
+  },
+  "scripts": {
+    "start": "node lib/server.js"
+  },
+  "keywords": [ "benchmark", "benchmarking" ],
+  "licenses": [ { "type": "MIT", "url": "http://github.com/mscdex/benchd/raw/master/LICENSE" } ],
+  "repository": { "type": "git", "url": "http://github.com/mscdex/benchd.git" }
+}
