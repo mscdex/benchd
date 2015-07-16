@@ -3,8 +3,6 @@ Description
 
 benchd is a tool for benchmarking JavaScript code across different node.js/io.js versions.
 
-**NOTE:** The code is executed server-side **AS-IS with full access to node-specific machinery (e.g. require(), etc.)**, so if you open the server up to the public, **PLEASE** start the server in an appropriately protected environment.
-
 
 Requirements
 ============
@@ -40,12 +38,13 @@ Available config options:
 
 * **jobAbandonTimeout** - _integer_ - This is the amount of time in milliseconds to allow a job's owner to be disconnected before removing (and stopping, if currently executing) the job. **Default: 30 * 1000**
 
+* **vanilla** - _boolean_ - Restrict benchmark code to a "pure"/vanilla JavaScript environment (e.g. no `require()`, `process`, etc.). **If you disable this, _PLEASE_ start the server in an appropriately protected environment.** **Default: true**
 
 Todo
 ====
 
 * Allow setting of configuration options via command line flags
 
-* Add "vanilla JavaScript" configuration option
-
 * Add optional setup and teardown code inputs
+
+* Tests

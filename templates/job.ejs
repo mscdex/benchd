@@ -1,3 +1,6 @@
+var vanilla = <%- vanilla %>;
+if (vanilla)
+  var vm = require('vm');
 var Suite = require(<%- benchmarkModulePath %>).Suite;
 function formatNumber(number) {
   number = String(number).split('.');
@@ -16,12 +19,17 @@ function extractLocalError(err) {
     if (!m)
       return false;
     var line = +m[1];
-    if (/^v0\.10\./.test(process.version))
-      line -= 2;
-    else if (/^v0\.12\./.test(process.version))
-      line -= 3;
-    else
-      --line;
+    if (vanilla) {
+      if (/^v0\.1[02]\./.test(process.version))
+        --line;
+    } else {
+      if (/^v0\.10\./.test(process.version))
+        line -= 2;
+      else if (/^v0\.12\./.test(process.version))
+        line -= 3;
+      else
+        --line;
+    }
     return { stack: shortStack, line: line };
   }
 }
@@ -37,8 +45,14 @@ function formatResult(target) {
          ' sampled)';
 }
 var suite = new Suite();
+var benchOpts;
+if (vanilla)
+  benchOpts = { vanilla: true };
 <% benchmarks.forEach(function(b) { %>
-suite.add(<%- b.name %>, <%- b.jscode %>);
+var fn = <%- b.jscode %>;
+if (vanilla)
+  fn = vm.runInNewContext(fn, {});
+suite.add(<%- b.name %>, fn, benchOpts);
 <% }); %>
 suite.on('cycle', function(event) {
   console.log(JSON.stringify({
