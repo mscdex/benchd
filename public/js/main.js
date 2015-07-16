@@ -319,6 +319,7 @@ function startup() {
     if (!$results.hasClass('hidden'))
       $results.addClass('hidden');
     submitJob();
+    window.scrollTo(0, 0);
   });
   $benchmarks.children().each(function(i, el) {
     setupEditor(el);
