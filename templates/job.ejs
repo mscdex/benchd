@@ -1,5 +1,4 @@
-var Benchmark = require(<%- benchmarkModulePath %>);
-var inspect = require('util').inspect;
+var Suite = require(<%- benchmarkModulePath %>).Suite;
 function formatNumber(number) {
   number = String(number).split('.');
   return number[0].replace(/(?=(?:\d{3})+$)(?!\b)/g, ',') +
@@ -37,7 +36,7 @@ function formatResult(target) {
          stats.rme.toFixed(2) + '% (' + size + ' run' + (size == 1 ? '' : 's') +
          ' sampled)';
 }
-var suite = new Benchmark.Suite();
+var suite = new Suite();
 <% benchmarks.forEach(function(b) { %>
 suite.add(<%- b.name %>, <%- b.jscode %>);
 <% }); %>
