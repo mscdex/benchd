@@ -48,6 +48,4 @@ Todo
 
 * Add "vanilla JavaScript" configuration option
 
-* Code editor components for benchmark code inputs
-
 * Add optional setup and teardown code inputs
