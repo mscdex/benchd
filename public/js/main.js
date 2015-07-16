@@ -9,8 +9,11 @@ var $status;
 var $results;
 var $resultsTable;
 var resultBusyHtml = '<img src="/img/working.gif" aria-hidden="true" />';
-var resultErrHtml = '<span class="glyphicon glyphicon-exclamation-sign" ' +
-                    'aria-hidden="true"></span>  Error';
+var resultTargetErrHtml = '<span class="glyphicon glyphicon-exclamation-sign"' +
+                          ' aria-hidden="true"></span> Target Process Error';
+var resultBenchPErrHtml = '<span class="glyphicon glyphicon-exclamation-sign"' +
+                          ' aria-hidden="true"></span> ' +
+                          'JS Error (no stacktrace)';
 var resultErrAttrs = { 'data-state': 'error', 'class': 'danger' };
 var resultErrStyle = { 'color': 'red', 'font-weight': 'bold' };
 var entityMap = {
@@ -26,6 +29,26 @@ function escapeHtml(string) {
   return String(string).replace(/[&<>"'\/]/g, function (s) {
     return entityMap[s];
   });
+}
+
+function makeResultErrorHTML(err) {
+  if (typeof err === 'object') {
+    // We were able to extract a stack trace and possibly a line
+    // number
+    var content = '';
+    if (err.line !== undefined) {
+      content = '<strong>Line #: <span class=&quot;text-danger&quot;>' +
+                err.line + '</span></strong><br />';
+    }
+    content += '<strong>Stack Trace:</strong><br />' +
+               escapeHtml(err.stack).replace(/\r?\n/g, '<br />');
+    return '<button class="btn btn-danger has-popover" data-content="' +
+           content + '"><span class="glyphicon glyphicon-exclamation-sign"' +
+           ' aria-hidden="true"></span> JS Error</button>';
+  } else {
+    // Something went wrong when parsing the stack trace
+    return resultBenchPErrHtml;
+  }
 }
 
 function tryParseJSON(str) {
@@ -184,7 +207,7 @@ function submitJob(jobId, fullTries) {
               continue;
             $td.attr(resultErrAttrs)
                .css(resultErrStyle)
-               .html(resultErrHtml);
+               .html(resultTargetErrHtml);
           } else {
             var benchIdx = Math.floor(i / targetsLen);
             var benchResult = result.benchmarks[benchmarks[benchIdx]];
@@ -192,8 +215,17 @@ function submitJob(jobId, fullTries) {
               // This benchmark finished
               if (state === 'done')
                 continue;
-              $td.attr('data-state', 'done')
-                 .html(benchResult.replace('(', '<br />('));
+              if (typeof benchResult === 'string') {
+                // Successful benchmark completion
+                benchResult = benchResult.replace('(', '<br />(');
+                state = 'done';
+              } else {
+                // Benchmark ended in error
+                benchResult = makeResultErrorHTML(benchResult);
+                state = 'error';
+              }
+              $td.attr('data-state', state)
+                 .html(benchResult);
             } else if (state === 'waiting') {
               // We're transitioning from waiting to working
               $td.attr('data-state', 'working')
@@ -270,7 +302,7 @@ function setupEditor(dest) {
     editor.setTheme('ace/theme/chrome');
     editor.setAnimatedScroll(false);
     editor.setHighlightActiveLine(true);
-    editor.renderer.setShowGutter(false);
+    editor.renderer.setShowGutter(true);
     editor.renderer.setPrintMarginColumn(false);
     editor.renderer.setShowInvisibles(false);
     session.setValue($textarea.val());
@@ -323,5 +355,11 @@ function startup() {
   });
   $benchmarks.children().each(function(i, el) {
     setupEditor(el);
+  });
+  $resultsTable.popover({
+    selector: '.has-popover',
+    placement: 'auto bottom',
+    html: true,
+    trigger: 'focus'
   });
 }

@@ -5,13 +5,34 @@ function formatNumber(number) {
   return number[0].replace(/(?=(?:\d{3})+$)(?!\b)/g, ',') +
     (number[1] ? '.' + number[1] : '');
 }
+function extractLocalError(err) {
+  var stack = err.stack;
+  var shortStack = stack.replace(/[ \t]+at Benchmark\.eval[\s\S]+/, '');
+  if (/^v0\.8\./.test(process.version)) {
+    // No line number available for eval'ed code with this v8
+    return { stack: shortStack };
+  } else {
+    var regex = /[ \t]+at Benchmark\.eval .+, <anonymous>:(\d+):/;
+    var m = regex.exec(stack);
+    if (!m)
+      return false;
+    var line = +m[1];
+    if (/^v0\.10\./.test(process.version))
+      line -= 2;
+    else if (/^v0\.12\./.test(process.version))
+      line -= 3;
+    else
+      --line;
+    return { stack: shortStack, line: line };
+  }
+}
 function formatResult(target) {
   var error = target.error,
       hz = target.hz,
       stats = target.stats,
       size = stats.sample.length;
   if (error)
-    return inspect(error);
+    return extractLocalError(error);
   return formatNumber(hz.toFixed(hz < 100 ? 2 : 0)) + ' ops/sec \xb1' +
          stats.rme.toFixed(2) + '% (' + size + ' run' + (size == 1 ? '' : 's') +
          ' sampled)';
@@ -21,7 +42,10 @@ var suite = new Benchmark.Suite();
 suite.add(<%- b.name %>, <%- b.jscode %>);
 <% }); %>
 suite.on('cycle', function(event) {
-  console.log(JSON.stringify([event.target.name, formatResult(event.target)]));
+  console.log(JSON.stringify({
+    name: event.target.name,
+    result: formatResult(event.target)
+  }));
 }).on('complete', function() {
   console.log(JSON.stringify(this.filter('fastest').pluck('name')));
 }).run();
