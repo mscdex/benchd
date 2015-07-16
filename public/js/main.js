@@ -13,7 +13,6 @@ var resultErrHtml = '<span class="glyphicon glyphicon-exclamation-sign" ' +
                     'aria-hidden="true"></span>  Error';
 var resultErrAttrs = { 'data-state': 'error', 'class': 'danger' };
 var resultErrStyle = { 'color': 'red', 'font-weight': 'bold' };
-
 var entityMap = {
   "&": "&amp;",
   "<": "&lt;",
@@ -253,6 +252,42 @@ function submitJob(jobId, fullTries) {
   };
 }
 
+function setupEditor(dest) {
+  var $dest = $(dest);
+  if ($dest.attr('data-editor') !== 'true') {
+    var $textarea = $dest.find('textarea');
+    var editDiv = $('<div>', {
+      width: $textarea.width(),
+      height: $textarea.height(),
+      'class': $textarea.attr('class')
+    }).insertBefore($textarea);
+
+    $textarea.addClass('hidden');
+
+    var editor = ace.edit(editDiv[0]);
+    var session = editor.getSession();
+
+    editor.setTheme('ace/theme/chrome');
+    editor.setAnimatedScroll(false);
+    editor.setHighlightActiveLine(true);
+    editor.renderer.setShowGutter(false);
+    editor.renderer.setPrintMarginColumn(false);
+    editor.renderer.setShowInvisibles(false);
+    session.setValue($textarea.val());
+    session.setMode('ace/mode/javascript');
+    session.on('change', function() {
+      $textarea.val(editor.getValue());
+    });
+    session.setTabSize(2);
+    session.setUseSoftTabs(true);
+    session.setNewLineMode('auto');
+    session.setUseWrapMode(true);
+    session.setUseWorker(false);
+
+    $dest.attr('data-editor', 'true');
+  }
+}
+
 function startup() {
   var $benchTpl = $('#benchTpl');
 
@@ -267,18 +302,25 @@ function startup() {
   $benchTpl.removeProp('id').removeAttr('id');
   $benchmarks.on('click', 'button.insert', function() {
     var parentBlock = $(this).parent().parent().parent();
-    $benchTpl.clone().removeClass('hidden').insertBefore(parentBlock);
+    setupEditor($benchTpl.clone()
+                         .removeClass('hidden')
+                         .insertBefore(parentBlock)[0]);
   });
   $benchmarks.on('click', 'button.delete', function() {
     $(this).parent().parent().parent().remove();
   });
   $('#benchAdd').click(function() {
-    $benchTpl.clone().removeClass('hidden').appendTo($benchmarks);
+    setupEditor($benchTpl.clone()
+                         .removeClass('hidden')
+                         .appendTo($benchmarks)[0]);
   });
   $submitButton.click(function() {
     resultsTableInfo = null;
     if (!$results.hasClass('hidden'))
       $results.addClass('hidden');
     submitJob();
+  });
+  $benchmarks.children().each(function(i, el) {
+    setupEditor(el);
   });
 }
