@@ -211,21 +211,19 @@ function submitJob(jobId, fullTries) {
           } else {
             var benchIdx = Math.floor(i / targetsLen);
             var benchResult = result.benchmarks[benchmarks[benchIdx]];
-            if (benchResult) {
+            if (benchResult !== undefined) {
               // This benchmark finished
               if (state === 'done')
                 continue;
               if (typeof benchResult === 'string') {
                 // Successful benchmark completion
-                benchResult = benchResult.replace('(', '<br />(');
-                state = 'done';
+                $td.attr('data-state', 'done')
+                   .html(benchResult.replace('(', '<br />('));
               } else {
                 // Benchmark ended in error
-                benchResult = makeResultErrorHTML(benchResult);
-                state = 'error';
+                $td.attr(resultErrAttrs)
+                   .html(makeResultErrorHTML(benchResult));
               }
-              $td.attr('data-state', state)
-                 .html(benchResult);
             } else if (state === 'waiting') {
               // We're transitioning from waiting to working
               $td.attr('data-state', 'working')
