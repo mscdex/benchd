@@ -127,12 +127,12 @@ function submitJob(jobId, fullTries) {
     if (socket)
       socketTimer = setTimeout(closeSocket, 30 * 1000);
   }
-  function pingInterval() {
+  function sendPing() {
     if (socket) {
       resetSocketTimeout();
       socket.send('ping');
     } else
-      clearInterval(pingTimer);
+      clearTimeout(pingTimer);
   }
   function closeSocket() {
     if (socket)
@@ -140,9 +140,9 @@ function submitJob(jobId, fullTries) {
   }
   function resetPingTimer() {
     clearTimeout(socketTimer);
-    clearInterval(pingTimer);
+    clearTimeout(pingTimer);
     if (socket)
-      pingTimer = setInterval(pingInterval, 20 * 1000);
+      pingTimer = setTimeout(sendPing, 20 * 1000);
   }
 
   socket.onopen = function(event) {
@@ -158,7 +158,7 @@ function submitJob(jobId, fullTries) {
     resetPingTimer();
   };
   socket.onmessage = function(event) {
-    clearTimeout(socketTimer);
+    resetPingTimer();
     if (DEBUG) {
       console.log('onmessage:');
       console.dir(event.data);
