@@ -34,7 +34,7 @@ Available config options:
 
 * **maxQueued** - _integer_ - This is the maximum number of queued jobs. **Default: 1000**
 
-* **maxJobSize** - _integer_ - This is the maximum size (in bytes) for a job (the JSON stringified version, including all benchmarks). **Default: 512 * 1000**
+* **maxJobSize** - _integer_ - This is the maximum size (in bytes) for a job (the JSON stringified version, including all benchmarks). **Default: 512 * 1024**
 
 * **jobAbandonTimeout** - _integer_ - This is the amount of time in milliseconds to allow a job's owner to be disconnected before removing (and stopping, if currently executing) the job. **Default: 30 * 1000**
 
