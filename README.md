@@ -47,4 +47,6 @@ Todo
 
 * Add support for async ("deferred") option for benchmarks
 
+* Better WebSocket error handling if server goes away unexpectedly
+
 * Tests
