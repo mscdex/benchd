@@ -45,6 +45,6 @@ Todo
 
 * Allow setting of configuration options via command line flags
 
-* Add optional setup and teardown code inputs
+* Add support for async ("deferred") option for benchmarks
 
 * Tests

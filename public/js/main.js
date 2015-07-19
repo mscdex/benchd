@@ -1,6 +1,8 @@
 var DEBUG = false;
 
 var resultsTableInfo;
+var $setupCode;
+var $teardownCode;
 var $benchmarks;
 var $submitButton;
 var $targets;
@@ -35,10 +37,24 @@ function makeResultErrorHTML(err) {
   if (typeof err === 'object') {
     // We were able to extract a stack trace and possibly a line
     // number
-    var content = '';
+    var source;
+    switch (err.source) {
+      case 'setup':
+        source = 'Setup code';
+        break;
+      case 'teardown':
+        source = 'Teardown code';
+        break;
+      case 'bench':
+        source = 'Benchmark code';
+        break;
+      default:
+        source = 'Unknown';
+    }
+    var content = '<strong>Source:</strong> ' + source + '<br />';
     if (err.line !== undefined) {
-      content = '<strong>Line #: <span class=&quot;text-danger&quot;>' +
-                err.line + '</span></strong><br />';
+      content += '<strong>Line #: <span class=&quot;text-danger&quot;>' +
+                 err.line + '</span></strong><br />';
     }
     content += '<strong>Stack Trace:</strong><br />' +
                escapeHtml(err.stack).replace(/\r?\n/g, '<br />');
@@ -98,6 +114,12 @@ function generateJobJSON() {
     alert('No benchmarks to submit');
     return false;
   }
+  var setupCode = $setupCode.find('textarea.setupCode').val();
+  var teardownCode = $teardownCode.find('textarea.teardownCode').val();
+  if (setupCode.trim().length)
+    job.setupCode = setupCode;
+  if (teardownCode.trim().length)
+    job.teardownCode = teardownCode;
   resultsTableInfo = [job.targets, benchNames];
   return JSON.stringify(job);
 }
@@ -203,18 +225,27 @@ function submitJob(jobId, fullTries) {
           var state = $td.attr('data-state');
           if (result.fastest === false) {
             // The target process unexpectedly failed for some reason
+
             if (state === 'error')
               continue;
+
             $td.attr(resultErrAttrs)
                .css(resultErrStyle)
                .html(resultTargetErrHtml);
           } else {
             var benchIdx = Math.floor(i / targetsLen);
-            var benchResult = result.benchmarks[benchmarks[benchIdx]];
+            var benchName = benchmarks[benchIdx];
+            var benchResult = result.benchmarks[benchName];
             if (benchResult !== undefined) {
               // This benchmark finished
-              if (state === 'done')
+
+              if (state === 'done') {
+                if (result.fastest &&
+                    ~result.fastest.indexOf(benchName))
+                  $td.addClass('success');
                 continue;
+              }
+
               if (typeof benchResult === 'string') {
                 // Successful benchmark completion
                 $td.attr('data-state', 'done')
@@ -328,6 +359,8 @@ function startup() {
   $status = $('#status');
   $results = $('#results');
   $resultsTable = $results.find('table');
+  $setupCode = $('#setupCode');
+  $teardownCode = $('#teardownCode');
 
   $benchTpl.removeProp('id').removeAttr('id');
   $benchmarks.on('click', 'button.insert', function() {
@@ -354,6 +387,10 @@ function startup() {
   $benchmarks.children().each(function(i, el) {
     setupEditor(el);
   });
+  setupEditor($setupCode[0]);
+  $setupCode.removeClass('in');
+  setupEditor($teardownCode[0]);
+  $teardownCode.removeClass('in');
   $resultsTable.popover({
     selector: '.has-popover',
     placement: 'auto bottom',

@@ -1,37 +1,79 @@
-var vanilla = <%- vanilla %>;
-if (vanilla)
-  var vm = require('vm');
-var Suite = require(<%- benchmarkModulePath %>).Suite;
+var vm = require('vm');
+var Benchmark = require(<%- benchmarkModulePath %>);
 function formatNumber(number) {
   number = String(number).split('.');
   return number[0].replace(/(?=(?:\d{3})+$)(?!\b)/g, ',') +
     (number[1] ? '.' + number[1] : '');
 }
-function extractLocalError(err) {
-  var stack = err.stack;
-  var shortStack = stack.replace(/[ \t]+at Benchmark\.eval[\s\S]+/, '');
-  if (/^v0\.8\./.test(process.version)) {
-    // No line number available for eval'ed code with this v8
-    return { stack: shortStack };
-  } else {
-    var regex = /[ \t]+at Benchmark\.eval .+, <anonymous>:(\d+):/;
-    var m = regex.exec(stack);
-    if (!m)
-      return false;
-    var line = +m[1];
-    if (vanilla) {
-      if (/^v0\.1[02]\./.test(process.version))
-        --line;
-    } else {
-      if (/^v0\.10\./.test(process.version))
-        line -= 2;
-      else if (/^v0\.12\./.test(process.version))
-        line -= 3;
-      else
-        --line;
+function extractLocalError(target, err, isSynErr) {
+<% if (vanilla) { %>
+  var stack = err.stack.replace(/\r?\n[ \t]+at __benchd_[\s\S]+/, '');
+  var m = /\r?\n[ \t]+at __benchd_(setup|teardown|bench):(\d+):/.exec(err.stack);
+  var source;
+  var line;
+  if (!m) {
+    // Syntax errors
+    stack = 'SyntaxError: ' + err.message.split(/\r?\n/g).pop();
+    if (!/^v0\.(?:8|10)\./.test(process.version)) {
+      // v0.8-v0.10 will have already spit out the missing stack info, but later
+      // versions already provide the filename, line number, and other
+      // information in the actual stack trace
+      m = /^__benchd_(setup|teardown|bench):(\d+)\r?\n/.exec(err.stack);
+      if (!m)
+        return false;
+      source = m[1];
+      line = +m[2];
     }
-    return { stack: shortStack, line: line };
+  } else {
+    source = m[1];
+    line = +m[2];
+    stack = stack.split(/\r?\n/g).pop() + '\n';
   }
+  stack = stack.replace(/^__benchd_.+\r?\n/, '');
+<% } else { %>
+  var stack = err.stack.replace(/\r?\n[ \t]+at Benchmark\.eval [\s\S]+/, '');
+  var m = /\r?\n[ \t]+at Benchmark\.eval \[as compiled\] \(eval at <anonymous> \((?:[^,]+, <anonymous>:(\d+))?.*\r?\n/.exec(err.stack);
+  var source;
+  var line;
+  if (!m) {
+    // Syntax errors
+    var errLines = err.message.split(/\r?\n/g);
+    stack = 'SyntaxError: ' + (errLines[3] || errLines[0]);
+    if (!/^v0\.(?:8|10)\./.test(process.version)) {
+      // v0.8-v0.10 will have already spit out the missing stack info, but later
+      // versions already provide the filename, line number, and other
+      // information in the actual stack trace
+      m = /^__benchd_(setup|teardown|bench):(\d+)\r?\n/.exec(err.stack);
+      if (!m)
+        return false;
+      source = m[1];
+      line = +m[2];
+    }
+  } else {
+    source = 'unknown';
+    line = +m[1];
+    if (!isNaN(line)) {
+      if (isSynErr)
+        --target.lines.setup;
+      if (/^v0\.1[02]\./.test(process.version))
+        line -= target.lines.baseOffset;
+      if (line - target.lines.setup <= 0)
+        source = 'setup';
+      else {
+        if (line - target.lines.fn <= 1)
+          source = 'bench';
+        else {
+          line -= target.lines.fn;
+          source = 'teardown';
+        }
+      }
+    }
+  }
+<% } %>
+  if (!isNaN(line))
+    return { source: source, stack: stack, line: line };
+  else
+    return { source: source, stack: stack };
 }
 function formatResult(target) {
   var error = target.error,
@@ -39,26 +81,89 @@ function formatResult(target) {
       stats = target.stats,
       size = stats.sample.length;
   if (error)
-    return extractLocalError(error);
+    return extractLocalError(target, error);
   return formatNumber(hz.toFixed(hz < 100 ? 2 : 0)) + ' ops/sec \xb1' +
          stats.rme.toFixed(2) + '% (' + size + ' run' + (size == 1 ? '' : 's') +
          ' sampled)';
 }
-var suite = new Suite();
-var benchOpts;
-if (vanilla)
-  benchOpts = { vanilla: true };
+var suite = new Benchmark.Suite();
+var bench;
+var jscode;
+var added = 0;
+var earlyError = false;
+var setupFn<% if (setupCode) { %>=<%- setupCode %><% } %>;
+var teardownFn<% if (teardownCode) { %>=<%- teardownCode %><% } %>;
+var benchOpts = {
+  vanilla: <%- vanilla %>,
+  setup: setupFn,
+  teardown: teardownFn
+};
+if (setupFn) {
+  try {
+    new vm.Script(setupFn, '__benchd_setup', true);
+  } catch (ex) {
+    earlyError = true;
+    var stdout = ex.toString().trim();
+    var stderr = stdout.replace(/^SyntaxError: (__[\s\S]+)\r?\n.+$/, '$1');
+    stdout = stdout.replace(/^[\s\S]+\n(?:SyntaxError: )?(.+)$/,
+                            'SyntaxError: $1');
+    // Emulate v0.8/v0.10's additional syntax error output to stderr to keep
+    // things more consistent
+    if (!/^v0\.(?:8|10)\./.test(process.version))
+      process.stderr.write(stderr);
+    process.stdout.write(stdout);
+  }
+}
+if (!earlyError) {
+  if (teardownFn) {
+    try {
+      new vm.Script(teardownFn, '__benchd_teardown', true);
+    } catch (ex) {
+      earlyError = true;
+      var stdout = ex.toString().trim();
+      var stderr = stdout.replace(/^SyntaxError: (__[\s\S]+)\r?\n.+$/, '$1');
+      stdout = stdout.replace(/^[\s\S]+\n(?:SyntaxError: )?(.+)$/,
+                              'SyntaxError: $1');
+      // Emulate v0.8/v0.10's additional syntax error output to stderr to keep
+      // things more consistent
+      if (!/^v0\.(?:8|10)\./.test(process.version))
+        process.stderr.write(stderr);
+      process.stdout.write(stdout);
+    }
+  }
+  if (!earlyError) {
 <% benchmarks.forEach(function(b) { %>
-var fn = <%- b.jscode %>;
-if (vanilla)
-  fn = vm.runInNewContext(fn, {});
-suite.add(<%- b.name %>, fn, benchOpts);
+    jscode = <%- b.jscode %>;
+<%   if (vanilla) { %>
+    bench = new Benchmark(<%- b.name %>, '', benchOpts);
+    bench.fnOrig = jscode;
+<%   } else { %>
+    bench = new Benchmark(<%- b.name %>, jscode, benchOpts);
+<%   } %>
+    try {
+      new vm.Script(jscode, '__benchd_bench', true);
+      ++added;
+      suite.push(bench);
+    } catch (ex) {
+      console.log(JSON.stringify({
+        name: bench.name,
+        result: extractLocalError(null, ex, true)
+      }));
+    }
 <% }); %>
-suite.on('cycle', function(event) {
-  console.log(JSON.stringify({
-    name: event.target.name,
-    result: formatResult(event.target)
-  }));
-}).on('complete', function() {
-  console.log(JSON.stringify(this.filter('fastest').pluck('name')));
-}).run();
+    if (added) {
+      suite.on('cycle', function(event) {
+        console.log(JSON.stringify({
+          name: event.target.name,
+          result: formatResult(event.target)
+        }));
+      }).on('complete', function() {
+        console.log(JSON.stringify(this.filter('fastest').pluck('name')));
+      }).run();
+    }
+  }
+}
+process.on('exit', function(code) {
+  if (earlyError)
+    process.exit(25);
+});
