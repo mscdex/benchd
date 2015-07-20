@@ -51,4 +51,6 @@ Todo
 
 * Ability to easily share benchmark code and results (load from/save to gist?)
 
+* Add support for remote targets (e.g. via ssh) for multi-platform benchmarking
+
 * Tests
