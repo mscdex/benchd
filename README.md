@@ -47,6 +47,8 @@ Todo
 
 * Add support for async ("deferred") option for benchmarks
 
-* Better WebSocket error handling if server goes away unexpectedly
+* Better WebSocket error handling
+
+* Ability to easily share benchmark code and results (load from/save to gist?)
 
 * Tests
