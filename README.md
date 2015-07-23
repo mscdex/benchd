@@ -38,7 +38,7 @@ Available config options:
 
 * **jobAbandonTimeout** - _integer_ - This is the amount of time in milliseconds to allow a job's owner to be disconnected before removing (and stopping, if currently executing) the job. **Default: 30 * 1000**
 
-* **vanilla** - _boolean_ - Restrict benchmark code to a "pure"/vanilla JavaScript environment (e.g. no `require()`, `process`, etc.). **If you disable this, _PLEASE_ start the server in an appropriately protected environment.** **Default: true**
+* **vanilla** - _boolean_ - Restrict benchmark code to a "pure"/vanilla JavaScript environment (e.g. no `require()`, `process`, etc.). **If you disable this and are making the server public, _PLEASE_ start the server in an appropriately protected environment.** **Default: true**
 
 Todo
 ====
