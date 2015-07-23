@@ -49,6 +49,8 @@ Todo
 
 * Better WebSocket error handling
 
+* Add per-benchmark timeout configuration option
+
 * Ability to easily share benchmark code and results (load from/save to gist?)
 
 * Add support for remote targets (e.g. via ssh) for multi-platform benchmarking
