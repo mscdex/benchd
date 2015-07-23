@@ -1,7 +1,7 @@
 { "name": "benchd",
   "version": "0.0.0",
   "author": "Brian White <mscdex@mscdex.net>",
-  "description": "Benchmark JavaScript code across different node.js/io.js versions",
+  "description": "Benchmark JavaScript code across different node.js/io.js versions from the browser",
   "main": "./lib/server",
   "engines": { "node": ">=0.10.0" },
   "preferGlobal": true,

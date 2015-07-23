@@ -1,7 +1,7 @@
 Description
 ===========
 
-benchd is a tool for benchmarking JavaScript code across different node.js/io.js versions.
+benchd is a tool for benchmarking JavaScript code across different node.js/io.js versions from the browser.
 
 
 Requirements
