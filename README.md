@@ -20,7 +20,7 @@ Install
 Config
 ======
 
-Configuration is achieved by a JSON formatted config file. If the `BENCHD_CONF` environment variable is set and points to a valid file, that will be used. Otherwise the server will look in the current working directory for `benchd.conf`. If that also fails, then defaults will be used.
+Configuration is achieved by a JSON formatted config file. If the `BENCHD_CONF` environment variable is set and points to a valid file, that will be used. Otherwise the server will look in the current working directory for `benchd.conf`. If that also fails, then defaults will be used. Any command-line arguments of the same names will override any other config source.
 
 Available config options:
 
@@ -42,8 +42,6 @@ Available config options:
 
 Todo
 ====
-
-* Allow setting of configuration options via command line flags
 
 * Add support for async ("deferred") option for benchmarks
 
