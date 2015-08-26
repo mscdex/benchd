@@ -1,6 +1,7 @@
 var DEBUG = false;
 
 var resultsTableInfo;
+var $benchTpl;
 var $setupCode;
 var $teardownCode;
 var $benchmarks;
@@ -10,6 +11,8 @@ var $concurrency;
 var $status;
 var $results;
 var $resultsTable;
+var $benchAdd;
+var $gistDesc;
 var resultBusyHtml = '<img src="/img/working.gif" aria-hidden="true" />';
 var resultTargetErrHtml = '<span class="glyphicon glyphicon-exclamation-sign"' +
                           ' aria-hidden="true"></span> Target Process Error';
@@ -73,22 +76,33 @@ function tryParseJSON(str) {
   } catch (ex) {}
 }
 
-function generateJobJSON() {
-  var job = {
-    concurrency: 1,
-    targets: [],
-    benchmarks: []
-  };
-  var benchNames = [];
-  job.concurrency = Math.floor($concurrency.val());
-  if (!isFinite(job.concurrency) || job.concurrency <= 0) {
-    alert('Invalid concurrency');
-    return false;
+function generateJobJSON(saveOnly) {
+  var job;
+  if (!saveOnly) {
+    job = {
+      concurrency: 1,
+      targets: [],
+      benchmarks: []
+    };
+  } else {
+    job = {
+      benchmarks: []
+    };
   }
-  job.targets = $targets.val();
-  if (job.targets === null || !job.targets.length) {
-    alert('You must select at least one target');
-    return false;
+  var benchNames = [];
+  var benchmarks = job.benchmarks;
+
+  if (!saveOnly) {
+    job.concurrency = Math.floor($concurrency.val());
+    if (!isFinite(job.concurrency) || job.concurrency <= 0) {
+      alert('Invalid concurrency');
+      return false;
+    }
+    job.targets = $targets.val();
+    if (job.targets === null || !job.targets.length) {
+      alert('You must select at least one target');
+      return false;
+    }
   }
   var $entries = $benchmarks.children();
   for (var i = 0; i < $entries.length; ++i) {
@@ -98,29 +112,43 @@ function generateJobJSON() {
       alert('Benchmark #' + (i+1) + ' is missing a name');
       return false;
     } else if (name.length && jscode.length) {
-      for (var b = 0; b < job.benchmarks.length; ++b) {
-        if (job.benchmarks[b].name === name) {
+      for (var b = 0; b < benchmarks.length; ++b) {
+        if (benchmarks[b].name === name) {
           alert('Benchmark #' + (i+1) + '\'s name is already used');
           return false;
         }
       }
       benchNames.push(escapeHtml(name));
-      job.benchmarks.push({ name: name, jscode: jscode });
+      benchmarks.push({ name: name, jscode: jscode });
       continue;
     }
     $entries[i].remove();
   }
-  if (!job.benchmarks.length) {
-    alert('No benchmarks to submit');
+  if (!benchmarks.length) {
+    alert('No benchmarks to ' + (saveOnly ? 'save' : 'submit'));
     return false;
   }
   var setupCode = $setupCode.find('textarea.setupCode').val();
   var teardownCode = $teardownCode.find('textarea.teardownCode').val();
-  if (setupCode.trim().length)
-    job.setupCode = setupCode;
-  if (teardownCode.trim().length)
-    job.teardownCode = teardownCode;
-  resultsTableInfo = [job.targets, benchNames];
+  if (setupCode.trim().length) {
+    if (!saveOnly)
+      job.setupCode = setupCode;
+    else
+      benchmarks.unshift({ setup: true, jscode: setupCode });
+  }
+  if (teardownCode.trim().length) {
+    if (!saveOnly)
+      job.teardownCode = teardownCode;
+    else
+      benchmarks.push({ teardown: true, jscode: teardownCode });
+  }
+  if (!saveOnly)
+    resultsTableInfo = [job.targets, benchNames];
+  else {
+    var desc = $gistDesc.val().trim();
+    if (desc.length)
+      job.description = desc;
+  }
   return JSON.stringify(job);
 }
 
@@ -132,7 +160,7 @@ function submitJob(jobId, fullTries) {
 
   if (!jobId) {
     $submitButton.attr('disabled', 'disabled');
-    jobJSON = generateJobJSON();
+    jobJSON = generateJobJSON(false);
     if (jobJSON === false) {
       $submitButton.removeAttr('disabled');
       return;
@@ -334,7 +362,7 @@ function setupEditor(dest) {
     editor.renderer.setShowGutter(true);
     editor.renderer.setPrintMarginColumn(false);
     editor.renderer.setShowInvisibles(false);
-    session.setValue($textarea.val());
+    session.setValue($textarea.val(), -1);
     session.setMode('ace/mode/javascript');
     session.on('change', function() {
       $textarea.val(editor.getValue());
@@ -349,9 +377,59 @@ function setupEditor(dest) {
   }
 }
 
-function startup() {
-  var $benchTpl = $('#benchTpl');
+function setBenchmarks(data) {
+  var benchmarks = data.benchmarks;
+  var $el;
+  $benchmarks.find('button.delete').click();
+  for (var i = 0; i < benchmarks.length; ++i) {
+    $el = appendNewBenchmark();
+    $el.find('input.benchName').val(benchmarks[i].name);
+    ace.edit($el.find('div.ace_editor')[0])
+       .getSession()
+       .setValue(benchmarks[i].jscode, -1);
+  }
 
+  if (data.setupCode) {
+    ace.edit($setupCode.find('div.ace_editor')[0])
+       .getSession()
+       .setValue(data.setupCode, -1);
+    $setupCode.collapse('show');
+  } else {
+    $setupCode.collapse('hide');
+    ace.edit($setupCode.find('div.ace_editor')[0])
+       .getSession()
+       .setValue('', -1);
+  }
+
+  if (data.teardownCode) {
+    ace.edit($teardownCode.find('div.ace_editor')[0])
+       .getSession()
+       .setValue(data.teardownCode, -1);
+    $teardownCode.collapse('show');
+  } else {
+    $teardownCode.collapse('hide');
+    ace.edit($teardownCode.find('div.ace_editor')[0])
+       .getSession()
+       .setValue('', -1);
+  }
+}
+
+function appendNewBenchmark() {
+  var $el = $benchTpl.clone()
+                     .removeClass('hidden')
+                     .appendTo($benchmarks);
+  setupEditor($el[0]);
+  return $el;
+}
+
+function startup() {
+  var $loadGistModal = $('#loadGistModal');
+  var $gistUrl = $('#gistUrl');
+  var $saveGistModal = $('#saveGistModal');
+  var $gistPrgModal = $('#gistPrgModal');
+  var $gistPrgMsg = $('#gistPrgMsg');
+
+  $benchTpl = $('#benchTpl');
   $benchmarks = $('#benchmarks');
   $submitButton = $('#submit');
   $targets = $('#targets');
@@ -361,6 +439,8 @@ function startup() {
   $resultsTable = $results.find('table');
   $setupCode = $('#setupCode');
   $teardownCode = $('#teardownCode');
+  $benchAdd = $('#benchAdd');
+  $gistDesc = $('#gistDesc');
 
   $benchTpl.removeProp('id').removeAttr('id');
   $benchmarks.on('click', 'button.insert', function() {
@@ -372,11 +452,7 @@ function startup() {
   $benchmarks.on('click', 'button.delete', function() {
     $(this).parent().parent().parent().remove();
   });
-  $('#benchAdd').click(function() {
-    setupEditor($benchTpl.clone()
-                         .removeClass('hidden')
-                         .appendTo($benchmarks)[0]);
-  });
+  $benchAdd.click(appendNewBenchmark);
   $submitButton.click(function() {
     resultsTableInfo = null;
     if (!$results.hasClass('hidden'))
@@ -396,5 +472,65 @@ function startup() {
     placement: 'auto bottom',
     html: true,
     trigger: 'focus'
+  });
+
+  $loadGistModal.on('shown.bs.modal', function() {
+    $gistUrl.focus();
+  }).on('show.bs.modal', function() {
+    $gistUrl.val('');
+  });
+  $('#loadFromGist').click(function() {
+    var url = $gistUrl.val().trim();
+    if (!url.length)
+      return alert('Missing Gist URL');
+    var id = /\/([a-f0-9]+)$/.exec(url);
+    if (!id)
+      return alert('Malformed Gist URL');
+    id = id[1];
+    $loadGistModal.modal('hide');
+    $gistPrgMsg.text('Loading From Gist ...');
+    $gistPrgModal.find('div.modal-footer').addClass('hidden');
+    $gistPrgModal.modal('show');
+    $.get('/gist', { id: id })
+     .done(function(data) {
+       if (typeof data === 'object' && data !== null) {
+         setBenchmarks(data);
+         $gistPrgMsg.text('Loaded: ' + data.description);
+       } else {
+         $gistPrgMsg.text('Malformed response from server: ' + data);
+       }
+     })
+     .fail(function(xhr) {
+       $gistPrgMsg.text('Error loading from gist: ' + xhr.responseText);
+     })
+     .always(function() {
+       $gistPrgModal.find('div.modal-footer').removeClass('hidden');
+     });
+  });
+
+  $saveGistModal.on('shown.bs.modal', function() {
+    $gistDesc.focus();
+  }).on('show.bs.modal', function() {
+    $gistDesc.val('');
+  });
+  $('#saveToGist').click(function() {
+    var json = generateJobJSON(true);
+    if (json !== false) {
+      $saveGistModal.modal('hide');
+      $gistPrgMsg.text('Saving To Gist ...');
+      $gistPrgModal.find('div.modal-footer').addClass('hidden');
+      $gistPrgModal.modal('show');
+      $.post('/gist', json)
+       .done(function(data) {
+         $gistPrgMsg.html('Saved to: <a href="' + data + '" target="_blank">' +
+                          data + '</a>');
+       })
+       .fail(function(xhr) {
+         $gistPrgMsg.text('Error saving to gist: ' + xhr.responseText);
+       })
+       .always(function() {
+         $gistPrgModal.find('div.modal-footer').removeClass('hidden');
+       });
+    }
   });
 }

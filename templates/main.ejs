@@ -140,7 +140,72 @@
               </select>
             </div>
             <button type="button" class="btn btn-success btn-lg" id="submit">Submit Benchmarks</button>
+            <button type="button" class="btn btn-default btn-lg" data-toggle="modal" data-target="#loadGistModal">
+              Load From Gist
+            </button>
+            <button type="button" class="btn btn-default btn-lg" data-toggle="modal" data-target="#saveGistModal">
+              Save To Gist
+            </button>
           </form>
+        </div>
+      </div>
+    </div>
+
+    <div id="gistPrgModal" class="modal" tabindex="-1" role="dialog">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-body">
+            <center id="gistPrgMsg"></center>
+          </div>
+          <div class="modal-footer hidden">
+            <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="loadGistModal" class="modal" tabindex="-1" role="dialog" aria-labelledby="loadGistLabel">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" id="loadGistLabel">Load From Gist</h4>
+          </div>
+          <div class="modal-body">
+            <form>
+              <div class="form-group">
+                <label for="gistUrl">Gist URL</label>
+                <input type="text" class="form-control" id="gistUrl">
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" id="loadFromGist">Load</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="saveGistModal" class="modal" tabindex="-1" role="dialog" aria-labelledby="saveGistLabel">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" id="saveGistLabel">Save To Gist</h4>
+          </div>
+          <div class="modal-body">
+            <form>
+              <div class="form-group">
+                <label for="gistDesc">Gist Description</label>
+                <input type="text" class="form-control" id="gistDesc">
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" id="saveToGist">Save</button>
+          </div>
         </div>
       </div>
     </div>

@@ -8,6 +8,7 @@ Requirements
 ============
 
 * Backend: [node.js](http://nodejs.org/) -- v0.10.0 or newer
+
 * Frontend: Any modern browser with WebSocket support
 
 
@@ -40,6 +41,7 @@ Available config options:
 
 * **vanilla** - _boolean_ - Restrict benchmark code to a "pure"/vanilla JavaScript environment (e.g. no `require()`, `process`, etc.). **If you disable this and are making the server public, _PLEASE_ start the server in an appropriately protected environment.** **Default: true**
 
+
 Todo
 ====
 
@@ -49,7 +51,7 @@ Todo
 
 * Add per-benchmark timeout configuration option
 
-* Ability to easily share benchmark code and results (load from/save to gist?)
+* Ability to easily share benchmark results
 
 * Add support for remote targets (e.g. via ssh) for multi-platform benchmarking
 
