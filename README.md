@@ -53,7 +53,7 @@ Todo
 
 * Add per-benchmark timeout configuration option
 
-* Ability to easily share benchmark results
+* Ability to easily share benchmark results (can load from/save to gist right now, but no easy way to discover benchmarks)
 
 * Add support for remote targets (e.g. via ssh) for multi-platform benchmarking
 
