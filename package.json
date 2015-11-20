@@ -1,5 +1,5 @@
 { "name": "benchd",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": "Brian White <mscdex@mscdex.net>",
   "description": "Benchmark JavaScript code across different node.js/io.js versions from the browser",
   "main": "./lib/server",
